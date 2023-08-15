@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Caption Editor</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9"
+      crossorigin="anonymous"
+    />
+  </head>
+  <body>
+    <nav class="navbar bg-primary">
+      <div class="container-fluid">
+        <a class="navbar-brand" href="#">Captions Editor</a>
+      </div>
+    </nav>
+    <div class="container-fluid p-3">
+      <div id="app"></div>
+    </div>
+
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-HwwvtgBNo3bZJJLYd8oVXjrBZt8cqVSpeBNS5n7C8IVInixGAoxmnlMuBnhbgrkm"
+      crossorigin="anonymous"
+    ></script>
+
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script>
+      const api = axios.create({
+        baseUrl: "/",
+        headers: {
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
+          Expires: "0",
+        },
+      });
+
+      const app = document.getElementById("app");
+
+      const getAllFiles = async () => {
+        return api
+          .get("/images")
+          .then((res) => res.data)
+          .then((data) => {
+            console.log(data);
+
+            // prettier-ignore
+            const html = Object.keys(data).map(
+              (key) => `
+                <div class="card m-2 p-3" style="width: 18rem;">
+                  <img src="/file/${
+                    data[key].image
+                  }" class="card-img-top">
+                  <div class="card-body">
+                    <div class="input-group mb-3">
+                      <span class="input-group-text">Caption</span>
+                      <textarea rows="5" class="form-control" id="caption-${key}">${data[key].caption || ""}</textarea>
+                    </div>
+                    <div class="d-grid gap-2">
+                      <a href="#" class="btn btn-primary edit-btn" id="${key}">Edit</a>
+                      <a href="#" class="btn btn-danger delete-btn" id="${key}">Delete</a>
+                    </div>
+                  </div>
+                </div>
+              `
+            ).join("")
+
+            app.innerHTML = `<div class="row">${html}</div>`;
+          });
+      };
+
+      const editFile = async (id) => {
+        const caption = document.getElementById(`caption-${id}`).value;
+        return api.patch(`/caption/${id}`, { caption });
+      };
+
+      const deleteFile = async (id) => {
+        return api.delete(`/caption/${id}`);
+      };
+
+      document.addEventListener("DOMContentLoaded", () => {
+        getAllFiles().then(() => {
+          console.log("Fetched All Files");
+        });
+      });
+
+      document.addEventListener("click", (e) => {
+        if (e.target.closest(".edit-btn")) {
+          const id = e.target.id;
+          e.target.parentNode.parentNode.parentNode.classList.add(
+            "placeholder"
+          );
+
+          editFile(id).then(() => {
+            console.log(`Edited ${id}`);
+            getAllFiles().then(() => {
+              console.log("Fetched All Files");
+              e.target.parentNode.parentNode.parentNode.classList.remove(
+                "placeholder"
+              );
+            });
+          });
+          e.preventDefault();
+        }
+
+        if (e.target.closest(".delete-btn")) {
+          const id = e.target.id;
+          e.target.parentNode.parentNode.parentNode.classList.add(
+            "placeholder"
+          );
+
+          deleteFile(id).then(() => {
+            console.log(`Deleted ${id}`);
+            getAllFiles().then(() => {
+              console.log("Fetched All Files");
+              e.target.parentNode.parentNode.parentNode.classList.remove(
+                "placeholder"
+              );
+            });
+          });
+          e.preventDefault();
+        }
+      });
+    </script>
+  </body>
+</html>
